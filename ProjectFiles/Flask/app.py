@@ -1,4 +1,4 @@
-from camera import Video
+from .camera import Video
 
 from flask import Flask, Response, render_template
 
