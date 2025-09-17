@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, jsonify
 import base64, re, numpy as np, cv2
 from camera import Predictor
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 predictor = Predictor()
