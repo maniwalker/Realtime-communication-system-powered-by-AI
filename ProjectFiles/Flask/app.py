@@ -1,24 +1,29 @@
-from .camera import Video
-
-from flask import Flask, Response, render_template
+from flask import Flask, render_template, request, jsonify
+import base64, re, numpy as np, cv2
+from camera import Predictor
 
 app = Flask(__name__)
+predictor = Predictor()
+
 @app.route('/')
 def index():
-	return render_template('index.html')
+    return render_template('index.html')
 
-def gen(camera):
-	while True:
-		frame = camera.get_frame()
-		yield(b'--frame\r\n'
-			b'Content-Type: image/jpeg\r\n\r\n' + frame +
-			b'\r\n\r\n')
+@app.route("/upload_frame", methods=["POST"])
+def upload_frame():
+    try:
+        data = request.json["image"]
+        # Remove base64 header
+        img_str = re.search(r'base64,(.*)', data).group(1)
+        nparr = np.frombuffer(base64.b64decode(img_str), np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-@app.route('/video_feed')
-def video_feed():
-	video = Video()
-	return Response(gen(video), mimetype='multipart/x-mixed-replace; boundary = frame')
+        # Run prediction
+        pred = predictor.predict_frame(frame)
 
+        return jsonify({"prediction": pred})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
-	app.run()
+    app.run(debug=True)

@@ -25,12 +25,22 @@
     </nav>
     <section>
         <div class="d-flex flex-column justify-content-center align-items-center">
-            <div class="d-flex flex-column justify-content-center align-items-center" id="div-video-feed"
-                style="width: 640px;height: 480px;margin: 10px;min-height: 480px;min-width: 640px;border-radius: 10px;border: 4px dashed rgb(7, 245, 253) ;">
-                <img src="{{ url_for('video_feed') }}" style="width: 100%;height: 100%;color: rgb(255,255,255);text-align: center;font-size: 22px;"
-                    alt="Camera Access Not Provided!">
-            </div>
+            <div class="d-flex flex-column justify-content-center align-items-center" id="div-video-feed" style="width: 640px;height: 480px;margin: 						10px;min-height: 480px;min-width: 640px; border-radius: 10px;border: 4px dashed rgb(7, 245, 253);">
+	    <video id="webcam" autoplay playsinline style="width: 100%;height: 100%;border-radius: 10px;
+                  color: rgb(255,255,255);text-align: center;font-size: 22px;">
+   		Camera Access Not Provided!
+	    </video>
+        
+	</div>
+
+            
         </div>
+        <div id="prediction-text" 
+     style="color: white; font-size: 24px; margin-top: 15px; 
+            font-weight: bold; display: flex; justify-self: center; font-family: Arial;">
+    Waiting for prediction...
+</div>
+        
         <div class="d-flex flex-column justify-content-center align-items-center" style="margin-bottom: 10px;"><button
                 class="btn btn-info" type="button" data-bs-target="#modal-1" data-bs-toggle="modal">Quick Reference
                 -<strong> ASL Alphabets</strong></button></div>
@@ -81,13 +91,54 @@
                     <h4 class="modal-title">American Sign Language - Alphabets</h4><button type="button"
                         class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body"><img src="E:\IBM\Real-Time-Communication-Specially-Abled-main\ProjectFiles\Flask\static\img\ASL.png" width="100%"></div>
+                <div class="modal-body">
+                    <img src="{{ url_for('static', filename='img/ASL.png') }}">
+                </div>
                 <div class="modal-footer"><button class="btn btn-secondary" type="button"
                         data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+<script>
+    const video = document.getElementById("webcam");
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    const predictionText = document.getElementById("prediction-text");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+    
+            // start only after video is ready
+            video.addEventListener("loadedmetadata", () => {
+                setInterval(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+                    const frameData = canvas.toDataURL("image/jpeg");
+    
+                    fetch("/upload_frame", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: frameData })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        predictionText.textContent = "Prediction value :" + data.prediction;
+                        console.log("Prediction:", data.prediction);
+                    })
+                    .catch(err => console.error("Upload failed:", err));
+                }, 500);
+            });
+        })
+        .catch(err => {
+            alert("Camera access not provided! " + err);
+        });
+    </script>
+
 </body>
 
 </html>
