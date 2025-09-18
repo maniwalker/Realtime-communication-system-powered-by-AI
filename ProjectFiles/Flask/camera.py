@@ -12,7 +12,7 @@ class Predictor:
         model_path = os.path.join(base_dir, "asl_model.h5")
 
         # Extract the model if it doesn't exist
-        if not os.path.exists(model_path):
+        if not os.path.exists(model_path) and os.path.exists(zip_path):
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(base_dir)
 
@@ -20,12 +20,22 @@ class Predictor:
         self.index = ['A','B','C','D','E','F','G','H','I']
 
     def predict_frame(self, frame):
-        # Extract ROI
-        roi = frame[150:350, 50:250]
-        roi_resized = cv2.resize(roi, (64, 64))
+        try:
+            # Extract ROI safely
+            roi = frame[150:350, 50:250]
+            if roi.size == 0:
+                return None
 
-        x = image.img_to_array(roi_resized)
-        x = np.expand_dims(x, axis=0)
+            # Preprocess
+            roi_resized = cv2.resize(roi, (64, 64))
+            x = image.img_to_array(roi_resized) / 255.0  # normalize
+            x = np.expand_dims(x, axis=0)
 
-        pred = np.argmax(self.model.predict(x), axis=1)[0]
-        return self.index[pred]
+            # Prediction
+            pred = self.model.predict(x, verbose=0)  # suppress logs
+            label = self.index[np.argmax(pred)]
+            return label
+
+        except Exception as e:
+            print(f"Prediction error: {e}")
+            return None
