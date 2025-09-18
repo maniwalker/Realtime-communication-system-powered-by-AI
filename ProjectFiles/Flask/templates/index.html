@@ -113,30 +113,39 @@
     
             // start only after video is ready
             video.addEventListener("loadedmetadata", () => {
-                setInterval(() => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-                    const frameData = canvas.toDataURL("image/jpeg");
-    
-                    fetch("/upload_frame", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ image: frameData })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        predictionText.textContent = "Prediction value :" + data.prediction;
-                        console.log("Prediction:", data.prediction);
-                    })
-                    .catch(err => console.error("Upload failed:", err));
-                }, 500);
+               sendFrame();
             });
         })
         .catch(err => {
             alert("Camera access not provided! " + err);
         });
+
+        function sendFrame() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const frameData = canvas.toDataURL("image/jpeg");
+
+            fetch("/upload_frame", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: frameData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                predictionText.textContent = "Prediction value :" + data.prediction;
+                console.log("Prediction:", data.prediction);
+
+                // only send next after response
+                setTimeout(sendFrame, 2000);
+            })
+            .catch(err => console.error("Upload failed:", err));
+        }
+
+sendFrame();
+
+
     </script>
 
 </body>
